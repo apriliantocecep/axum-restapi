@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::sync::Arc;
 use axum::{
     Router,
     routing::{get},
@@ -10,18 +10,21 @@ use crate::api::{
     },
     middleware::{logging_middleware}
 };
-use std::str::FromStr;
 use tokio::{
     net::TcpListener,
     signal::{self, unix::{self, SignalKind}}
 };
+use crate::application::{
+    state::{SharedState},
+};
 
-pub async fn start() {
+pub async fn start(state: SharedState) {
     let router = Router::new()
         .route("/", get(index))
+        .with_state(Arc::clone(&state))
         .layer(middleware::from_fn(logging_middleware));
 
-    let addr = SocketAddr::from_str(&format!("{}:{}", "127.0.0.1", "8000")).unwrap();
+    let addr = state.config.get_socket_addr();
     let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::info!("listening on {}", addr);
 
