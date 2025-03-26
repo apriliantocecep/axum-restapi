@@ -6,7 +6,8 @@ use axum::{
 };
 use crate::api::{
     handlers::{
-        root_handlers::{index}
+        root_handlers::{index},
+        error_handlers::error_404_handler,
     },
     middleware::{logging_middleware}
 };
@@ -21,6 +22,7 @@ use crate::application::{
 pub async fn start(state: SharedState) {
     let router = Router::new()
         .route("/", get(index))
+        .fallback(error_404_handler)
         .with_state(Arc::clone(&state))
         .layer(middleware::from_fn(logging_middleware));
 
