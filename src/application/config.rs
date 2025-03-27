@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 #[derive(Debug, Clone)]
 pub struct Config {
     pub service_port: u16,
+    pub database_url: String,
 }
 
 impl Config {
@@ -21,7 +22,8 @@ pub fn load() -> Config {
     }
 
     let config = Config {
-        service_port: env_parse("PORT")
+        service_port: env_parse("PORT"),
+        database_url: env_get("DATABASE_URL"),
     };
 
     tracing::trace!("configuration: {:#?}", config);
@@ -35,7 +37,7 @@ fn env_get(key: &str) -> String {
         Err(e) => {
             let msg = format!("{} {}", key, e);
             tracing::error!(msg);
-            panic!("{msg}");
+            std::process::exit(1);
         }
     }
 }
@@ -55,7 +57,7 @@ fn env_parse<T: std::str::FromStr>(key: &str) -> T {
         |_| {
             let msg = format!("failed to parse: {}", key);
             tracing::error!(msg);
-            panic!("{msg}");
+            std::process::exit(1);
         },
         |v| v,
     )

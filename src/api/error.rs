@@ -31,6 +31,19 @@ impl From<(StatusCode, ApiErrorResponse)> for ApiError {
     }
 }
 
+impl From<sqlx::Error> for ApiError {
+    fn from(error: sqlx::Error) -> Self {
+        let status_code = match error {
+            sqlx::Error::RowNotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        Self {
+            status: status_code.as_u16(),
+            errors: vec![ApiErrorResponse::from(error)]
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApiErrorResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -51,6 +64,38 @@ pub struct ApiErrorResponse {
     pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
+}
+
+impl From<StatusCode> for ApiErrorResponse {
+    fn from(status_code: StatusCode) -> Self {
+        let error_message = status_code.to_string();
+        let error_code = error_message.replace(' ', "_").to_lowercase();
+        Self::new(&error_message).code(error_code)
+    }
+}
+
+impl From<sqlx::Error> for ApiErrorResponse {
+    fn from(e: sqlx::Error) -> Self {
+        // NOTE: Do not disclose database-related internal specifics, except for debug builds.
+        if cfg!(debug_assertions) {
+            let (code, kind) = match e {
+                sqlx::Error::RowNotFound => (ApiErrorCode::ResourceNotFound, ApiErrorKind::ResourceNotFound),
+                _ => (ApiErrorCode::DatabaseError, ApiErrorKind::DatabaseError)
+            };
+            Self::new(&e.to_string())
+                .code(code)
+                .kind(kind)
+                .trace_id()
+        } else {
+            // NOTE: Build the response with a trace id to find the exact error in the log when needed.
+            let error_response = Self::from(StatusCode::INTERNAL_SERVER_ERROR).trace_id();
+            let trace_id = error_response.trace_id.as_deref().unwrap_or("");
+
+            // The error must be logged here. Otherwise, we would lose it.
+            tracing::error!("SQLx error: {}, trace id: {}", e.to_string(), trace_id);
+            error_response
+        }
+    }
 }
 
 impl ApiErrorResponse {
@@ -109,6 +154,8 @@ impl ApiErrorResponse {
 #[serde(rename_all = "snake_case")]
 pub enum ApiErrorCode {
     ApiVersionError,
+    ResourceNotFound,
+    DatabaseError,
 }
 
 impl Display for ApiErrorCode {
@@ -121,6 +168,8 @@ impl Display for ApiErrorCode {
 #[serde(rename_all = "snake_case")]
 pub enum ApiErrorKind {
     ValidationError,
+    ResourceNotFound,
+    DatabaseError,
 }
 
 impl Display for ApiErrorKind {
