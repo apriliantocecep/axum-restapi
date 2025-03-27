@@ -9,6 +9,8 @@ chrono = { version = "0.4.40", features = ["serde"] }
 dotenvy = "0.15.7"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+thiserror = "2.0.12"
 tokio = { version = "1.44.1", features = ["full"] }
 tracing = { version = "0.1.41", features = ["attributes"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+uuid = { version = "1.13.1", features = ["v4"] }

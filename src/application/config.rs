@@ -41,6 +41,7 @@ fn env_get(key: &str) -> String {
 }
 
 #[inline]
+#[allow(dead_code)]
 fn env_get_or(key: &str, default: &str) -> String {
     if let Ok(v) = std::env::var(key) {
         return v;
