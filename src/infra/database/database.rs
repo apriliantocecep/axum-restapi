@@ -24,6 +24,13 @@ impl Database {
 
         Ok(db.pool())
     }
+
+    async fn migrate(pool: &DatabasePool) -> Result<(), DatabaseError> {
+        sqlx::migrate!()
+            .run(&**pool)
+            .await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Error)]
@@ -40,5 +47,11 @@ pub async fn load(config: &Config) -> DatabasePool {
     Database::connect(&config).await.unwrap_or_else(|e| {
         tracing::error!("{}", e);
         std::process::exit(1);
+    })
+}
+
+pub async fn migrate(pool: &DatabasePool) {
+    Database::migrate(pool).await.unwrap_or_else(|e| {
+        tracing::error!("{}", e);
     })
 }

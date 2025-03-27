@@ -3,5 +3,5 @@ mod postgres;
 mod option;
 
 pub use database::{
-    DatabasePool, DatabaseError, load,
+    DatabasePool, DatabaseError, load, migrate,
 };
