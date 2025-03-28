@@ -39,8 +39,6 @@ pub enum DatabaseError {
     SQLxError(#[from] sqlx::Error),
     #[error(transparent)]
     SQLxMigrateError(#[from] sqlx::migrate::MigrateError),
-    #[error("unsupported database connection: {0}")]
-    UnsupportedDatabaseConnection(String),
 }
 
 pub async fn load(config: &Config) -> DatabasePool {
