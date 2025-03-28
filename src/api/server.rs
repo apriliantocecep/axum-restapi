@@ -16,18 +16,23 @@ use tokio::{
     net::TcpListener,
     signal::{self, unix::{self, SignalKind}}
 };
+use tower_http::cors::{CorsLayer, Any};
 use crate::application::{
     state::{SharedState},
 };
 
 pub async fn start(state: SharedState) {
+    let cors_layer = CorsLayer::new()
+        .allow_origin(Any);
+
     let router = Router::new()
         .route("/", get(index))
         .route("/{version}/health", get(health_handler))
         .nest("/{version}/auth", auth_routes::routes())
         .fallback(error_404_handler)
         .with_state(Arc::clone(&state))
-        .layer(middleware::from_fn(logging_middleware));
+        .layer(middleware::from_fn(logging_middleware))
+        .layer(cors_layer);
 
     let addr = state.config.get_socket_addr();
     let listener = TcpListener::bind(&addr).await.unwrap();
