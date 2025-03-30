@@ -4,6 +4,8 @@ use std::net::SocketAddr;
 pub struct Config {
     pub service_port: u16,
     pub database_url: String,
+    pub access_token_exp_second: i64,
+    pub jwt_secret: String,
 }
 
 impl Config {
@@ -24,6 +26,8 @@ pub fn load() -> Config {
     let config = Config {
         service_port: env_parse("PORT"),
         database_url: env_get("DATABASE_URL"),
+        access_token_exp_second: env_parse("ACCESS_TOKEN_EXP_SECOND"),
+        jwt_secret: env_get("JWT_SECRET"),
     };
 
     tracing::trace!("configuration: {:#?}", config);

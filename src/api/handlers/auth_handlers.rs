@@ -1,28 +1,47 @@
-use axum::{
-    Json,
-    extract::State,
-    response::IntoResponse,
-};
+use axum::{extract::{State}, response::IntoResponse, Json};
 use serde_json::json;
-use sqlx::{query_as};
-use crate::api::{ApiError, ApiVersion};
-use crate::application::state::SharedState;
+use crate::api::{ApiError, ApiVersion, dto::auth_dto::LoginUserDto};
+use crate::application::{
+    state::SharedState,
+    security::{
+        validator::ValidatedJson,
+        auth::{AuthError},
+    },
+    repository::{
+        user_repository::UserRepositoryExt,
+    },
+};
+use crate::application::security::{auth, password};
 
-#[tracing::instrument(level = tracing::Level::TRACE, name = "login", skip_all)]
+#[tracing::instrument(level = tracing::Level::TRACE, name = "login", skip_all, fields(identifier=body.identifier))]
 pub async fn login_handler(
     api_version: ApiVersion,
     State(state): State<SharedState>,
+    ValidatedJson(body): ValidatedJson<LoginUserDto>,
 ) -> Result<impl IntoResponse, ApiError> {
     tracing::trace!("api version: {} login", api_version);
-    let data = get_by_id(&state).await?;
 
-    Ok(Json(json!({"data": data})))
-}
+    let data = state.get_user_by_identifier(&body.identifier).await?;
 
-async fn get_by_id(state: &SharedState) -> Result<i64, sqlx::Error> {
-    let row: (i64,) = query_as("SELECT $1")
-        .bind(150_i64)
-        .fetch_one(&*state.db_pool).await?;
+    if data.is_none() {
+        return Err(AuthError::WrongCredentials.into())
+    }
 
-    Ok(row.0)
+    let user = data.ok_or(AuthError::WrongCredentials)?;
+
+    if !user.active {
+        return Err(AuthError::WrongCredentials.into())
+    }
+
+    let password_matches = password::compare(&body.password, &user.password_hash)
+        .map_err(|_| AuthError::WrongCredentials)?;
+
+    if !password_matches {
+        return Err(AuthError::WrongCredentials)?
+    }
+
+    let token = auth::create_token(user, &state.config);
+    let access_token = token.access_token;
+
+    Ok(Json(json!({"token": access_token})))
 }

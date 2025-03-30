@@ -4,9 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+argon2 = "0.5.3"
+async-trait = "0.1.88"
 axum = "0.8.1"
 chrono = { version = "0.4.40", features = ["serde"] }
 dotenvy = "0.15.7"
+jsonwebtoken = "9.3.1"
+regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 sqlx = { version = "0.8.3", features = ["chrono", "macros", "mysql", "postgres", "runtime-tokio", "uuid"] }
@@ -16,3 +20,4 @@ tower-http = { version = "0.6.2", features = ["cors"] }
 tracing = { version = "0.1.41", features = ["attributes"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 uuid = { version = "1.13.1", features = ["fast-rng", "macro-diagnostics", "serde", "v4"] }
+validator = { version = "0.20.0", features = ["derive"] }

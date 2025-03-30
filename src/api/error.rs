@@ -6,6 +6,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use validator::{ValidationErrors};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiError {
@@ -13,9 +14,48 @@ pub struct ApiError {
     pub errors: Vec<ApiErrorResponse>
 }
 
+impl ApiError {
+    pub fn invalid_json() -> Self {
+        Self {
+            status: StatusCode::BAD_REQUEST.as_u16(),
+            errors: vec![
+                ApiErrorResponse::new("invalid json request"),
+            ],
+        }
+    }
+
+    pub fn validation_error(err: ValidationErrors) -> Self {
+        let errors = err.field_errors().iter().map(|(field, errors)| {
+            let messages: Vec<String> = errors
+                .iter()
+                .map(|e|
+                    e.message
+                        .as_ref()
+                        .map_or_else(
+                            || "invalid value".to_string(),
+                            |m| m.to_string()
+                        )
+                )
+                .collect();
+
+            ApiErrorResponse {
+                message: format!("{}: {}", field, messages.join(", ")),
+                code: errors.get(0).map(|e| e.code.to_string()),
+                timestamp: Utc::now(),
+                ..Default::default()
+            }
+        }).collect();
+
+        Self {
+            status: StatusCode::UNPROCESSABLE_ENTITY.as_u16(),
+            errors,
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        tracing::error!("error response: {:?}", self);
+        // tracing::error!("error response: {:?}", self);
         let status_code = StatusCode::from_u16(self.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         (status_code, Json(self)).into_response()
     }
@@ -153,8 +193,15 @@ impl ApiErrorResponse {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ApiErrorCode {
-    ApiVersionError,
+    AuthenticationWrongCredentials,
+    AuthenticationMissingCredentials,
+    AuthenticationTokenCreationError,
+    AuthenticationHashingPasswordError,
+    AuthenticationInvalidToken,
+    AuthenticationForbidden,
+    UserNotFound,
     ResourceNotFound,
+    ApiVersionError,
     DatabaseError,
 }
 
@@ -167,6 +214,7 @@ impl Display for ApiErrorCode {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ApiErrorKind {
+    AuthenticationError,
     ValidationError,
     ResourceNotFound,
     DatabaseError,

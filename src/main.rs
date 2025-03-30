@@ -4,7 +4,7 @@ use axum_restapi::application::app;
 #[tokio::main]
 async fn main() {
     let filter_layer = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| "axum_restapi=trace".into());
+        .unwrap_or_else(|_| format!("{}=trace", env!("CARGO_CRATE_NAME")).into());
     let fmt_layer = tracing_subscriber::fmt::layer()
         .compact()
         .with_target(false)
