@@ -5,7 +5,6 @@ CREATE TABLE users (
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    password_salt TEXT NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     roles TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -17,21 +16,19 @@ INSERT INTO users (
         username,
         email,
         password_hash,
-        password_salt,
         active,
         roles,
         created_at,
         updated_at
     )
 VALUES (
-        'Fake User',
-        'fake_user',
-        'fake_user@example.com',
-        -- password: pswd1234, hash(pswd1234pjZKk6A8YtC8$9p&UIp62bv4PLwD7@dF)
-        '7c44575b741f02d49c3e988ba7aa95a8fb6d90c0ef63a97236fa54bfcfbd9d51',
-        'pjZKk6A8YtC8$9p&UIp62bv4PLwD7@dF',
+        'Fake Admin',
+        'fake_admin',
+        'fake_admin@example.com',
+        -- password is password
+        '$argon2id$v=19$m=15360,t=2,p=1$2KWoDzmay5Mi8JCqV7FZGA$mS7z4djVhAMkpfcRLRQ8krJH1dQSJkJ4ent6vrNvM/0',
         'true',
-        'user',
+        'admin',
         now(),
         now()
     );

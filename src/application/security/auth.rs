@@ -23,6 +23,10 @@ pub enum AuthError {
     InvalidHashFormat,
     #[error("error while hashing password")]
     HashingError,
+    #[error("invalid bearer token")]
+    InvalidBearerToken,
+    #[error("invalid authorization header")]
+    InvalidAuthorizationHeader,
     #[error(transparent)]
     SQLxError(#[from] sqlx::Error),
 }
@@ -38,6 +42,8 @@ impl From<AuthError> for ApiError {
             AuthError::EmptyPassword => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationMissingCredentials),
             AuthError::InvalidHashFormat => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationHashingPasswordError),
             AuthError::HashingError => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationHashingPasswordError),
+            AuthError::InvalidBearerToken => (StatusCode::UNAUTHORIZED, ApiErrorCode::AuthenticationForbidden),
+            AuthError::InvalidAuthorizationHeader => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationMissingCredentials),
         };
 
         let error_response = ApiErrorResponse::new(&auth_error.to_string())
@@ -62,7 +68,7 @@ pub fn create_token(user: User, config: &Config) -> JwtToken {
     let sub = user.id.to_string();
 
     let access_token_id = Uuid::new_v4().to_string();
-    let access_token_exp = (now + chrono::Duration::seconds(config.access_token_exp_second)).timestamp() as usize;
+    let access_token_exp = (now + chrono::Duration::seconds(config.jwt_exp_access_token_second)).timestamp() as usize;
 
     let access_claim = AccessClaim {
         sub: sub.clone(),

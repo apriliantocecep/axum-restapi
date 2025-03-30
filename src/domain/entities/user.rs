@@ -8,8 +8,8 @@ pub struct User {
     pub name: String,
     pub username: String,
     pub email: String,
+    #[serde(skip_serializing)]
     pub password_hash: String,
-    pub password_salt: String,
     pub active: bool,
     pub roles: String,
     pub created_at: Option<NaiveDateTime>,

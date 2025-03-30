@@ -1,11 +1,20 @@
 use std::net::SocketAddr;
+use crate::application::security::jwt::JwtKey;
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    // API Configuration
     pub service_port: u16,
+
+    // Database Configuration
     pub database_url: String,
-    pub access_token_exp_second: i64,
+
+    // JWT configuration
     pub jwt_secret: String,
+    pub jwt_key: JwtKey,
+    pub jwt_exp_access_token_second: i64,
+    pub jwt_validation_leeway_seconds: i64,
+    pub jwt_enable_revoked_tokens: bool,
 }
 
 impl Config {
@@ -23,11 +32,16 @@ pub fn load() -> Config {
         tracing::info!("{} file not found, using existing environment", env_file);
     }
 
+    let jwt_secret = env_get("JWT_SECRET");
+
     let config = Config {
         service_port: env_parse("PORT"),
         database_url: env_get("DATABASE_URL"),
-        access_token_exp_second: env_parse("ACCESS_TOKEN_EXP_SECOND"),
-        jwt_secret: env_get("JWT_SECRET"),
+        jwt_key: JwtKey::new(jwt_secret.as_bytes()),
+        jwt_secret,
+        jwt_exp_access_token_second: env_parse("JWT_EXP_ACCESS_TOKEN_SECONDS"),
+        jwt_validation_leeway_seconds: env_parse("JWT_VALIDATION_LEEWAY_SECONDS"),
+        jwt_enable_revoked_tokens: env_parse("JWT_ENABLE_REVOKED_TOKENS"),
     };
 
     tracing::trace!("configuration: {:#?}", config);

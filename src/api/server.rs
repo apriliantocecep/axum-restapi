@@ -10,7 +10,7 @@ use crate::api::{
         error_handlers::error_404_handler,
     },
     middleware::{logging_middleware},
-    routes::{auth_routes},
+    routes::{auth_routes, user_routes},
 };
 use tokio::{
     net::TcpListener,
@@ -29,6 +29,7 @@ pub async fn start(state: SharedState) {
         .route("/", get(index))
         .route("/{version}/health", get(health_handler))
         .nest("/{version}/auth", auth_routes::routes())
+        .nest("/{version}/users", user_routes::routes())
         .fallback(error_404_handler)
         .with_state(Arc::clone(&state))
         .layer(middleware::from_fn(logging_middleware))
