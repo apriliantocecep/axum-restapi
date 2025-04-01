@@ -35,7 +35,7 @@ pub async fn start(state: SharedState) {
         .layer(middleware::from_fn(logging_middleware))
         .layer(cors_layer);
 
-    let addr = state.config.get_socket_addr();
+    let addr = state.config.socket_addr();
     let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::info!("listening on {}", addr);
 

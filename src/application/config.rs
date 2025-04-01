@@ -15,12 +15,20 @@ pub struct Config {
     pub jwt_exp_access_token_second: i64,
     pub jwt_validation_leeway_seconds: i64,
     pub jwt_enable_revoked_tokens: bool,
+
+    // Redis configuration
+    pub redis_host: String,
+    pub redis_port: u16,
 }
 
 impl Config {
-    pub fn get_socket_addr(&self) -> SocketAddr {
+    pub fn socket_addr(&self) -> SocketAddr {
         use std::str::FromStr;
         SocketAddr::from_str(&format!("{}:{}", "127.0.0.1", self.service_port)).unwrap()
+    }
+
+    pub fn redis_url(&self) -> String {
+        format!("redis://{}:{}", self.redis_host, self.redis_port)
     }
 }
 
@@ -42,6 +50,8 @@ pub fn load() -> Config {
         jwt_exp_access_token_second: env_parse("JWT_EXP_ACCESS_TOKEN_SECONDS"),
         jwt_validation_leeway_seconds: env_parse("JWT_VALIDATION_LEEWAY_SECONDS"),
         jwt_enable_revoked_tokens: env_parse("JWT_ENABLE_REVOKED_TOKENS"),
+        redis_host: env_get("REDIS_HOST"),
+        redis_port: env_parse("REDIS_PORT"),
     };
 
     tracing::trace!("configuration: {:#?}", config);
