@@ -203,6 +203,7 @@ pub enum ApiErrorCode {
     ResourceNotFound,
     ApiVersionError,
     DatabaseError,
+    RedisError,
 }
 
 impl Display for ApiErrorCode {

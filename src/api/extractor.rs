@@ -12,6 +12,7 @@ use crate::application::{
         jwt::{AccessClaim, ClaimsMethods, decode_token},
     },
 };
+use crate::application::security::auth;
 
 impl<S> FromRequestParts<S> for AccessClaim
 where
@@ -48,7 +49,7 @@ where
 
     // Check for revoked tokens if enabled by configuration.
     if state.config.jwt_enable_revoked_tokens {
-        // TODO: validate revoked
+        auth::validate_revoked(&claims, &state).await?
     }
     Ok(claims)
 }

@@ -3,8 +3,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 use crate::api::{ApiError, ApiErrorCode, ApiErrorKind, ApiErrorResponse};
-use crate::application::config::Config;
-use crate::application::security::jwt::{AccessClaim, JwtTokenType};
+use crate::application::{
+    config::Config,
+    security::jwt::{AccessClaim, ClaimsMethods, JwtTokenType},
+    service::token_service,
+    state::SharedState,
+};
 use crate::domain::entities::user::User;
 
 #[derive(Debug, Error)]
@@ -29,6 +33,8 @@ pub enum AuthError {
     InvalidAuthorizationHeader,
     #[error(transparent)]
     SQLxError(#[from] sqlx::Error),
+    #[error(transparent)]
+    RedisError(#[from] redis::RedisError),
 }
 
 impl From<AuthError> for ApiError {
@@ -44,6 +50,7 @@ impl From<AuthError> for ApiError {
             AuthError::HashingError => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationHashingPasswordError),
             AuthError::InvalidBearerToken => (StatusCode::UNAUTHORIZED, ApiErrorCode::AuthenticationForbidden),
             AuthError::InvalidAuthorizationHeader => (StatusCode::BAD_REQUEST, ApiErrorCode::AuthenticationMissingCredentials),
+            AuthError::RedisError(_) => (StatusCode::INTERNAL_SERVER_ERROR, ApiErrorCode::RedisError),
         };
 
         let error_response = ApiErrorResponse::new(&auth_error.to_string())
@@ -88,4 +95,15 @@ pub fn create_token(user: User, config: &Config) -> JwtToken {
     JwtToken {
         access_token
     }
+}
+
+pub async fn validate_revoked<T: std::fmt::Debug + ClaimsMethods + Send + Sync>(
+    claims: &T,
+    state: &SharedState,
+) -> Result<(), AuthError> {
+    let revoked = token_service::is_revoked(claims, state).await?;
+    if revoked {
+        Err(AuthError::WrongCredentials)?
+    }
+    Ok(())
 }
